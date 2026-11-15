@@ -338,6 +338,22 @@ function prepareVoiceRuntime(): void {
   }
 }
 
+/** Development needs the same pinned Computer Use binary that packaging prepares. */
+function prepareComputerUseDriver(): void {
+  try {
+    execFileSync(process.execPath, ["run", "prepare:cua-driver"], {
+      cwd: projectRoot,
+      stdio: "inherit",
+      timeout: 300_000,
+    });
+  } catch (error) {
+    logger.warn(
+      "Could not prepare the Computer Use driver. Run `bun run prepare:cua-driver`, then retry Computer Use in the app.",
+      toLogValue(error),
+    );
+  }
+}
+
 async function main(): Promise<void> {
   const { target, dryRun, force, shared, hostingTest, slack } = parseDevelopmentTarget(process.argv.slice(2));
   const services = servicesForTarget(target);
@@ -345,7 +361,10 @@ async function main(): Promise<void> {
   if (!dryRun && prepareDevelopmentEnvironment() === "created") {
     logger.info("Prepared local development state.");
   }
-  if (!dryRun && services.includes("app")) prepareVoiceRuntime();
+  if (!dryRun && services.includes("app")) {
+    prepareComputerUseDriver();
+    prepareVoiceRuntime();
+  }
   const developmentEnvironment =
     dryRun || !DISTRIBUTION.accountEnabled ? {} : await loadDevelopmentEnvironment(projectRoot);
   if (hostingTest) {

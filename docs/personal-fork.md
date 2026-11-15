@@ -47,6 +47,12 @@ The personal development runner starts the desktop app only. It does not start t
 or Signal, load shared cloud secrets, run D1 migrations or seed a showcase account. Cloud and mobile
 development harness commands fail with an explanation in this distribution.
 
+The desktop startup prepares the pinned Computer Use driver in `build/cua-driver/`, as well as
+the local voice runtime. These binary assets are not stored in Git. If a download fails, the app
+still opens. Repair Computer Use with `bun run prepare:cua-driver`, then select Retry in its
+settings panel. `bun run cua-driver:doctor` verifies which binary is selected. macOS Screen
+Recording and Accessibility permissions must still be granted through the app and system settings.
+
 Development data stays in `.openbot/profiles/` under this checkout, with a worktree-specific profile.
 `OPENBOT_DEV_PROFILE_ROOT` can select another profile root. Packaged builds use `OpenBot Personal`
 as their app name and data directory, with a separate app ID. Workspaces, child-server files and
