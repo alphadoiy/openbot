@@ -1,5 +1,5 @@
 appId: io.github.alphadoiy.openbot
-productName: OpenBot Personal
+productName: OpenBot
 copyright: Copyright © 2026 Synthetify Labs spółka z ograniczoną odpowiedzialnością
 protocols:
   - name: OpenBot invitations

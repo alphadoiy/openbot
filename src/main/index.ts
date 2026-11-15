@@ -317,7 +317,10 @@ if (commandLineUserDataDirectory) {
 if (app.isPackaged && !commandLineUserDataDirectory) {
   app.setPath("userData", join(app.getPath("appData"), "OpenBot Personal"));
 }
+// macOS and Linux capture their credential-store name before `ready`. Keep that startup
+// identity for saved credentials, then use the public name before application windows open.
 app.setName("OpenBot Personal");
+app.once("ready", () => app.setName("OpenBot"));
 app.enableSandbox();
 if (process.platform === "win32") app.setAppUserModelId("io.github.alphadoiy.openbot");
 // Linux: on Wayland, Chromium waits until a monitor is on before it starts. With none, start again on

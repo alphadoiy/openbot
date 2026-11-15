@@ -1,4 +1,4 @@
-# OpenBot Personal
+# OpenBot
 
 Personal, noncommercial fork of `nightly-labs/openbot`, based on commit
 `b476623a00dbc70f6c0ff3ba44b7257d6f417caf` (0.71.0).
@@ -54,8 +54,11 @@ settings panel. `bun run cua-driver:doctor` verifies which binary is selected. m
 Recording and Accessibility permissions must still be granted through the app and system settings.
 
 Development data stays in `.openbot/profiles/` under this checkout, with a worktree-specific profile.
-`OPENBOT_DEV_PROFILE_ROOT` can select another profile root. Packaged builds use `OpenBot Personal`
-as their app name and data directory, with a separate app ID. Workspaces, child-server files and
+`OPENBOT_DEV_PROFILE_ROOT` can select another profile root. The application, executable and installer
+show the name `OpenBot`. Packaged builds keep the existing `OpenBot Personal` data directory and
+separate app ID, so this display-name change does not move data into the official app's directory.
+On macOS and Linux, the startup name stays `OpenBot Personal` until `ready`, after Electron captures its
+credential-store identity; the public name becomes `OpenBot` before application windows open. Workspaces, child-server files and
 managed provider runtimes stay inside that profile. Existing OpenBot data is not imported.
 A manually supplied `--user-data-dir` takes precedence.
 

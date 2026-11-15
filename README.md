@@ -1,4 +1,4 @@
-# OpenBot Personal
+# OpenBot
 
 Personal fork of [nightly-labs/openbot](https://github.com/nightly-labs/openbot).
 See [the fork scope and self-hosting tradeoffs](docs/personal-fork.md) before installing.
