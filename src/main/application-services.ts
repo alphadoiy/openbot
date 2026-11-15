@@ -1308,7 +1308,7 @@ export async function createApplicationServices({
     homedir(),
     new OpenBotDatabase(app.getPath("userData")),
     () => agentDefaults.get(),
-    localServerChild?.agentRoot ?? join(app.getPath("userData"), "workspace"),
+    localServerChild?.agentRoot,
   );
   // Phase marks for `dev:bench`, so a slow start shows which group of awaits it waited on. They
   // change nothing.
@@ -1699,9 +1699,7 @@ export async function createApplicationServices({
     localServerChild?.runtimeRoot ??
     providerRuntimeRoot({
       appData: app.getPath("appData"),
-      userDataOverride: DISTRIBUTION.accountEnabled
-        ? app.commandLine.getSwitchValue("user-data-dir")
-        : app.getPath("userData"),
+      userDataOverride: app.commandLine.getSwitchValue("user-data-dir"),
     });
   const providerDownloads = join(app.getPath("userData"), "provider-runtimes", ".downloads");
   const hermesInstaller = new HermesInstaller({
@@ -3993,7 +3991,7 @@ export async function createApplicationServices({
       : new LocalServers({
           registryPath: join(app.getPath("userData"), LOCAL_SERVERS_FILE),
           userDataRoot: join(app.getPath("userData"), "local-servers"),
-          agentRoot: join(app.getPath("userData"), "workspace", "Servers"),
+          agentRoot: join(homedir(), "OpenBot", "Servers"),
           runtimeRoot: providerRuntimesRoot,
           cipher: safeStorageCipher("error.app.macSecureStorageUnavailable"),
           remoteServers,

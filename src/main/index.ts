@@ -1,6 +1,5 @@
 import { uptime } from "node:os";
 import { join, resolve } from "node:path";
-import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import { parseInviteUrl, selfHostedApiOrigin } from "@openbot/contracts/invite-links";
 import {
   type AgentEvent,
@@ -53,7 +52,6 @@ import { guardDevelopmentOutput } from "./development-output";
 import {
   developmentUserDataName,
   developmentWorktreeColor,
-  localDevelopmentProfileRoot,
   readAnalyticsCaptureUrl,
   readDevelopmentInstanceId,
   readDevelopmentProfile,
@@ -306,7 +304,7 @@ if (commandLineUserDataDirectory) {
   app.setPath(
     "userData",
     join(
-      DISTRIBUTION.accountEnabled ? app.getPath("appData") : localDevelopmentProfileRoot(app.getAppPath()),
+      app.getPath("appData"),
       developmentUserDataName(
         developmentProfile ?? "app",
         readDevelopmentInstanceId(process.env.OPENBOT_DEV_INSTANCE_ID),
@@ -314,15 +312,9 @@ if (commandLineUserDataDirectory) {
     ),
   );
 }
-if (app.isPackaged && !commandLineUserDataDirectory) {
-  app.setPath("userData", join(app.getPath("appData"), "OpenBot Personal"));
-}
-// macOS and Linux capture their credential-store name before `ready`. Keep that startup
-// identity for saved credentials, then use the public name before application windows open.
-app.setName("OpenBot Personal");
-app.once("ready", () => app.setName("OpenBot"));
+app.setName("OpenBot");
 app.enableSandbox();
-if (process.platform === "win32") app.setAppUserModelId("io.github.alphadoiy.openbot");
+if (process.platform === "win32") app.setAppUserModelId("app.openbot.desktop");
 // Linux: on Wayland, Chromium waits until a monitor is on before it starts. With none, start again on
 // XWayland. Before the single-instance lock, so that the new process can take it. A parent process or
 // systemd watches the process, the output and the input of a headless server, so it does not restart.

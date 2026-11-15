@@ -7,6 +7,8 @@ This source remains under PolyForm Noncommercial 1.0.0. Removing payment feature
 This branch runs locally without an OpenBot account. Start it from source with `bun install --frozen-lockfile`
 and `bun run dev`. The upstream download and install commands below install the official app.
 Phone and cloud access are outside this personal version.
+Packaged builds use the official OpenBot application ID and data directory, including existing custom
+provider settings. Quit the installed app before replacing it. See the fork guide for storage details.
 
 [![CI](https://github.com/nightly-labs/openbot/actions/workflows/ci.yml/badge.svg)](https://github.com/nightly-labs/openbot/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-blue.svg)](LICENSE)

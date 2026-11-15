@@ -53,24 +53,29 @@ still opens. Repair Computer Use with `bun run prepare:cua-driver`, then select 
 settings panel. `bun run cua-driver:doctor` verifies which binary is selected. macOS Screen
 Recording and Accessibility permissions must still be granted through the app and system settings.
 
-Development data stays in `.openbot/profiles/` under this checkout, with a worktree-specific profile.
-`OPENBOT_DEV_PROFILE_ROOT` can select another profile root. The application, executable and installer
-show the name `OpenBot`. Packaged builds keep the existing `OpenBot Personal` data directory and
-separate app ID, so this display-name change does not move data into the official app's directory.
-On macOS and Linux, the startup name stays `OpenBot Personal` until `ready`, after Electron captures its
-credential-store identity; the public name becomes `OpenBot` before application windows open. Workspaces, child-server files and
-managed provider runtimes stay inside that profile. Existing OpenBot data is not imported.
-A manually supplied `--user-data-dir` takes precedence.
+The application, executable and installer show the name `OpenBot`. Packaged builds use the official
+application ID `app.openbot.desktop`, the `OpenBot` startup and credential-store name, and the official
+data directory. On macOS this is `~/Library/Application Support/OpenBot`. The custom provider store
+reads `openbot-custom-providers-v1.json` there, with the existing encrypted-storage implementation.
+The database, settings, browser data and credentials use the same profile as the official app.
+Default workspaces use `~/OpenBot`, child workspaces use `~/OpenBot/Servers`, and managed provider
+runtimes use the official `OpenBot/provider-runtimes` directory under the OS application-data root.
+The two distributions share the profile and its single-instance lock; quit OpenBot before replacing
+the installed app. Existing `OpenBot Personal` data stays on disk and is not merged or deleted.
+
+Source development uses the upstream worktree-specific `OpenBot Dev` profiles under the OS
+application-data root. It no longer uses the fork-specific `.openbot/profiles/` root or
+`OPENBOT_DEV_PROFILE_ROOT`. A manually supplied `--user-data-dir` still takes precedence.
 
 Official installers in the upstream sections of README install the official app. Build a local
 personal DMG with `bun run dist:mac`; generated images stay under `dist/` and are not stored in Git.
-The local ARM64 image includes Computer Use and the voice runtime, uses a separate application ID,
-and is not Developer ID signed or notarized. Its image checksum, resources and Electron security
-fuses were checked; full Apple signature and application launch verification did not pass in the
-restricted execution environment. The original Electron binary also exits with code 134 there.
-See `dist/personal-package-report.json` for the local artifact report. Existing user data was not migrated.
-Provider CLI logins can still use their provider's own user folders and credentials; profile isolation
-does not copy or erase those folders.
+The local ARM64 image includes Computer Use and the voice runtime. It is not Developer ID signed or
+notarized. The shared application ID and credential-store name do not reproduce the official Apple
+signature. macOS can ask for keychain access again. Full Apple signature and application launch
+verification are not available in the restricted execution environment; the original Electron binary
+also exits with code 134 there. See `dist/OpenBot-0.71.0-arm64.report.json` for the current artifact report.
+Packaging does not open or migrate the user's database. Provider CLI logins still use their provider's
+own user folders and credentials.
 
 ## Checks
 

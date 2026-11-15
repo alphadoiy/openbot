@@ -1,7 +1,8 @@
 > **Personal distribution:** This branch runs without an OpenBot account. Desktop account initialization,
 > saved cloud-session restoration, account requests, cloud WebRTC, billing, mobile pairing, product analytics
 > and anonymous failure reporting are disabled by the distribution policy. Local user data and managed
-> provider runtimes use the personal profile. Provider CLI authentication, model services, plugins,
+> provider runtimes use the same paths as the official desktop app. Packaged builds share its profile,
+> credentials and workspaces. Provider CLI authentication, model services, plugins,
 > visited websites and runtime downloads keep their own network behavior. The upstream feature details
 > below describe code retained in the repository; cloud services are not enabled in this distribution.
 
