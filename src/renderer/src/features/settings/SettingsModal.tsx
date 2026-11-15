@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import type {
   AccountSession,
   AppInfo,
@@ -144,7 +145,13 @@ export interface SettingsModalProps {
 export function SettingsModal(props: SettingsModalProps) {
   const i18n = useI18n();
   const [activeTab, setActiveTab] = createSignal<SettingsTab>(
-    untrack(() => (props.initialTab === "hosted-servers" ? "billing" : props.initialTab)) ?? "general",
+    untrack(() =>
+      !DISTRIBUTION.commerceEnabled && (props.initialTab === "billing" || props.initialTab === "hosted-servers")
+        ? "general"
+        : props.initialTab === "hosted-servers"
+          ? "billing"
+          : props.initialTab,
+    ) ?? "general",
   );
   let modalElement: HTMLElement | undefined;
   const profile = createSettingsProfileStore(props, () => activeTab() === "profile");
@@ -183,6 +190,7 @@ export function SettingsModal(props: SettingsModalProps) {
   createEffect(
     () => {
       const tab = props.open ? props.openTab : undefined;
+      if (!DISTRIBUTION.commerceEnabled && (tab === "billing" || tab === "hosted-servers")) return "general";
       return tab === "hosted-servers" ? "billing" : tab;
     },
     (tab) => {
@@ -218,7 +226,7 @@ export function SettingsModal(props: SettingsModalProps) {
         (value === "agent-dock" && agentDockShown()) ||
         value === "computer-use" ||
         value === "profile" ||
-        value === "billing" ||
+        (value === "billing" && DISTRIBUTION.commerceEnabled) ||
         value === "mobile-connect" ||
         value === "updates"
       ) {

@@ -7,6 +7,7 @@ import {
   type BillingInterval,
   type BillingPlanId,
 } from "@openbot/contracts/billing";
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import { HOSTED_SERVER_ENTRY_POINTS, type HostedServerEntryPoint } from "@openbot/contracts/hosted-servers";
 import {
   AGENT_PROVIDERS,
@@ -862,7 +863,7 @@ class DesktopAnalytics {
   configure(appInfo: AppInfo): boolean {
     configureDesktopReports(appInfo, this.#trackingEnabled, this.#identity);
     if (this.#client) return true;
-    if (!shouldEnableDesktopAnalytics(appInfo, this.#productionBuild)) {
+    if (!DISTRIBUTION.desktopTelemetryEnabled || !shouldEnableDesktopAnalytics(appInfo, this.#productionBuild)) {
       this.#disabled = true;
       this.#pending = [];
       return false;

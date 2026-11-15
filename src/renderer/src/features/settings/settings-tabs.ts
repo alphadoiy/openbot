@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import type { AppInfo } from "@openbot/contracts/ipc";
 import type { AppTextKey } from "@openbot/i18n";
 import {
@@ -272,7 +273,7 @@ export function settingsTabShown(
   tab: SettingsTab,
   window: { platform: AppInfo["platform"] | undefined; chatWindow: boolean },
 ): boolean {
-  if (tab === "hosted-servers") return false;
+  if (tab === "hosted-servers" || (tab === "billing" && !DISTRIBUTION.commerceEnabled)) return false;
   if (tab === "dynamic-island") return dynamicIslandSettingsShown(window.platform, window.chatWindow);
   if (tab === "agent-dock") return window.platform !== undefined && !window.chatWindow;
   return true;

@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import { INSTALL_SERVER_SCRIPT_URL } from "@openbot/contracts/hosted-servers";
 import {
   type CentralAuthUser,
@@ -337,7 +338,7 @@ function AddServer() {
       open={addServerOpen()}
       entryPoint={addServerEntryPoint() ?? undefined}
       calls={appPort().hostedServers}
-      license={appPort().license}
+      license={DISTRIBUTION.commerceEnabled ? appPort().license : undefined}
       thisComputer
       pricingPage={windowPage.pricing}
       onOpenUrl={(url) => void appPort().openUrl(url)}
@@ -935,7 +936,7 @@ function ServerSettings() {
           onSetPublished={setServerPublished}
           onRotateHostKey={serverRotatesHostKey(server()) ? rotateHostKey : undefined}
           onCreateInvite={createServerInvite}
-          license={appPort().license}
+          license={DISTRIBUTION.commerceEnabled ? appPort().license : undefined}
           companySignIn={appPort().auth}
           onContactUs={() => void appPort().openExternal("hosted-server-contact")}
           onUpdateMember={updateServerMember}

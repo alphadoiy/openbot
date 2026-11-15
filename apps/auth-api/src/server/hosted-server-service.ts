@@ -10,6 +10,7 @@ import {
   memberLimitForPlan,
   storageTierOf,
 } from "@openbot/contracts/billing";
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import {
   HOSTED_BOAT_PLAN_SIZE,
   HOSTED_PLAN_SIZE,
@@ -370,6 +371,7 @@ export class HostedServerService {
     this.#webhookSecret = bindings.BOAT_WEBHOOK_SECRET?.trim() || null;
     this.#ticketKey = bindings.REMOTE_TICKET_PRIVATE_JWK?.trim() || null;
     this.#enabled =
+      DISTRIBUTION.commerceEnabled &&
       bindings.HOSTED_SERVERS_ENABLED === "true" &&
       this.#boat !== null &&
       this.#template !== null &&

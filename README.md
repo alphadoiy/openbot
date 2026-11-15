@@ -1,4 +1,8 @@
-# OpenBot
+# OpenBot Personal
+
+Personal fork of [nightly-labs/openbot](https://github.com/nightly-labs/openbot).
+See [the fork scope and self-hosting tradeoffs](docs/personal-fork.md) before installing.
+This source remains under PolyForm Noncommercial 1.0.0. Removing payment features does not grant commercial-use rights.
 
 [![CI](https://github.com/nightly-labs/openbot/actions/workflows/ci.yml/badge.svg)](https://github.com/nightly-labs/openbot/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-blue.svg)](LICENSE)

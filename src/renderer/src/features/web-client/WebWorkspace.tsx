@@ -1,6 +1,7 @@
 import { isKnownAgentProvider } from "@openbot/contracts/agent-providers";
 import type { AppAppearance } from "@openbot/contracts/app-appearance";
 import type { AppLanguage } from "@openbot/contracts/app-language";
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import { HOSTED_SERVER_CONTACT_URL } from "@openbot/contracts/hosted-servers";
 import {
   type AddedAgent,
@@ -1409,18 +1410,25 @@ function WebWorkspaceFrame(props: WebWorkspaceProps) {
   /** `/app?start=license` opens Billing with the license dialog open, and with the order of the pricing page. */
   const [licenseStart, setLicenseStart] = createSignal<{ order: PricingOrder | null } | null>(null);
   const billingCalls = createWebBillingCalls(props.accountFetch);
-  const billing = createBillingStore(() => billingCalls, billingOpen);
+  const billing = createBillingStore(
+    () => billingCalls,
+    () => DISTRIBUTION.commerceEnabled && billingOpen(),
+  );
   const licenseCalls = createWebLicenseCalls(props.accountFetch);
-  const license = createLicenseStore(() => licenseCalls, billingOpen, trackLicenseEvent);
+  const license = createLicenseStore(
+    () => licenseCalls,
+    () => DISTRIBUTION.commerceEnabled && billingOpen(),
+    trackLicenseEvent,
+  );
   // The web client has no Hosted servers settings, so a server whose plan ended is renewed or deleted in Billing.
   const billingHostedServers = createSettingsHostedServersStore(
     {
       get open() {
-        return billingOpen();
+        return DISTRIBUTION.commerceEnabled && billingOpen();
       },
       hostedServersApi: hostedServers.calls,
     },
-    billingOpen,
+    () => DISTRIBUTION.commerceEnabled && billingOpen(),
   );
   /** Billing holds the hosted servers on the web, so the server menu deletes a server there. */
   function deleteHostedServer(serverId: string): void {
@@ -1842,7 +1850,7 @@ function WebWorkspaceFrame(props: WebWorkspaceProps) {
     canRemove: (serverId) =>
       Boolean(workspace.runtime.removeOwnedHost) && hostedServers.loaded() && !hostedServers.isHosted(serverId),
     onDelete: deleteHostedServer,
-    canDelete: hostedServers.isHosted,
+    canDelete: (serverId) => DISTRIBUTION.commerceEnabled && hostedServers.isHosted(serverId),
     onRestart: (hostId, trigger) => setRestartRequest({ hostId, trigger }),
     canRestart: (serverId) => hostedServers.isHosted(serverId) || restartsItself(serverId),
   } satisfies ServerActionCallbacks;
@@ -3347,7 +3355,7 @@ function WebWorkspaceFrame(props: WebWorkspaceProps) {
                     servers={servers()}
                     onRefreshServers={workspace.retryHosts}
                     resume={hostedServers.addServer()?.resume}
-                    license={licenseCalls}
+                    license={DISTRIBUTION.commerceEnabled ? licenseCalls : undefined}
                     onOpenUrl={(url) => window.open(url, "_blank", "noopener")}
                     onClose={hostedServers.closeAddServer}
                     onOpenServer={(serverId) => {
@@ -3426,7 +3434,7 @@ function WebWorkspaceFrame(props: WebWorkspaceProps) {
                         onSetPublished={unavailable}
                         onRotateHostKey={rotateHostKeyAction()}
                         onCreateInvite={serverSettings.createInvite}
-                        license={licenseCalls}
+                        license={DISTRIBUTION.commerceEnabled ? licenseCalls : undefined}
                         // Company sign-in setup waits for a loopback listener, so only the desktop app has it.
                         onDownloadDesktopApp={() => void window.open("/download", "_blank", "noopener")}
                         onContactUs={() => window.location.assign(HOSTED_SERVER_CONTACT_URL)}
@@ -3572,7 +3580,7 @@ function WebWorkspaceFrame(props: WebWorkspaceProps) {
                     restoreFocusTarget={restartRequest()?.trigger}
                   />
                   <BillingDialog
-                    open={billingOpen()}
+                    open={DISTRIBUTION.commerceEnabled && billingOpen()}
                     onOpenChange={(open) => {
                       setBillingOpen(open);
                       if (!open) setLicenseStart(null);

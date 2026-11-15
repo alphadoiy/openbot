@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import type { AppInfo, CentralAuthUser } from "@openbot/contracts/ipc";
 import { isBoolean, isDynamicRecord, isNumber } from "@openbot/contracts/runtime-values";
 import {
@@ -41,6 +42,7 @@ export function configureDesktopReports(
   tracking: boolean,
   user: Pick<CentralAuthUser, "id" | "email"> | null,
 ): void {
+  if (!DISTRIBUTION.desktopTelemetryEnabled) return;
   const capture = info.analyticsCaptureUrl;
   if (capture === undefined && (!import.meta.env.PROD || info.variant !== "production")) return;
   queue ??= new ReportQueue(

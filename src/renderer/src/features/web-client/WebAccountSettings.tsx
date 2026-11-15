@@ -1,5 +1,6 @@
 import { type AppAppearance, isAppAppearance } from "@openbot/contracts/app-appearance";
 import type { AppLanguage } from "@openbot/contracts/app-language";
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import type { AvatarColor, CentralAuthUser } from "@openbot/contracts/ipc";
 import type { AppTextKey } from "@openbot/i18n";
 import {
@@ -31,7 +32,7 @@ import { SidebarChatOrderSelect } from "@openbot/ui/features/settings/SidebarCha
 import { SoundChoiceSelect } from "@openbot/ui/features/settings/SoundChoiceSelect";
 import { createSettingsProfileStore } from "@openbot/ui/features/settings/stores/profile-store";
 import { useText } from "@openbot/ui/text";
-import { createEffect, createSignal, onCleanup } from "solid-js";
+import { createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { readActionSoundChoice, setActionSoundChoice } from "../../action-sounds";
 import { setShowAgentSteps, useShowAgentSteps } from "../../agent-steps-preference";
 import { setChatBubbleStyle, useChatBubbleStyle } from "../../chat-bubble-style-preference";
@@ -175,20 +176,22 @@ export default function WebAccountSettings(props: WebAccountSettingsProps) {
                 );
               })}
             </Tabs.List>
-            <div class="settings-modal-nav">
-              <Button
-                variant="ghost"
-                type="button"
-                class="settings-modal-nav-item"
-                onClick={() => {
-                  props.onOpenChange(false);
-                  props.onOpenBilling();
-                }}
-              >
-                <CreditCard aria-hidden="true" />
-                <span>{t("account.menu.billing")}</span>
-              </Button>
-            </div>
+            <Show when={DISTRIBUTION.commerceEnabled}>
+              <div class="settings-modal-nav">
+                <Button
+                  variant="ghost"
+                  type="button"
+                  class="settings-modal-nav-item"
+                  onClick={() => {
+                    props.onOpenChange(false);
+                    props.onOpenBilling();
+                  }}
+                >
+                  <CreditCard aria-hidden="true" />
+                  <span>{t("account.menu.billing")}</span>
+                </Button>
+              </div>
+            </Show>
           </>
         }
       >

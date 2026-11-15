@@ -1,4 +1,5 @@
 import { isManagedRuntimeProvider, type ManagedProviderId } from "@openbot/contracts/agent-providers";
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import { ANALYTICS_GENERATIONS, openPanelTransport, ReportQueue } from "@openbot/telemetry";
 import { fileReportStorage } from "@openbot/telemetry/node";
 import { makeWASocket } from "@openbot/whatsapp/baileys";
@@ -1305,7 +1306,7 @@ export async function createApplicationServices({
     homedir(),
     new OpenBotDatabase(app.getPath("userData")),
     () => agentDefaults.get(),
-    localServerChild?.agentRoot,
+    localServerChild?.agentRoot ?? join(app.getPath("userData"), "workspace"),
   );
   // Phase marks for `dev:bench`, so a slow start shows which group of awaits it waited on. They
   // change nothing.
@@ -3725,7 +3726,9 @@ export async function createApplicationServices({
     throw new Error(`Unsupported analytics platform: ${analyticsPlatform}`);
   }
   performance.mark("openbot:services.remote-desktop");
-  const analyticsEnabled = (app.isPackaged && appVariant === "production") || analyticsCaptureUrl !== null;
+  const analyticsEnabled =
+    DISTRIBUTION.desktopTelemetryEnabled &&
+    ((app.isPackaged && appVariant === "production") || analyticsCaptureUrl !== null);
   const analyticsInstallId = analyticsEnabled
     ? await Effect.runPromise(
         readAnalyticsInstallId(join(app.getPath("userData"), ANALYTICS_INSTALL_ID_FILE), Date.now()),
@@ -3981,7 +3984,7 @@ export async function createApplicationServices({
       : new LocalServers({
           registryPath: join(app.getPath("userData"), LOCAL_SERVERS_FILE),
           userDataRoot: join(app.getPath("userData"), "local-servers"),
-          agentRoot: join(homedir(), "OpenBot", "Servers"),
+          agentRoot: join(app.getPath("userData"), "workspace", "Servers"),
           runtimeRoot: providerRuntimesRoot,
           cipher: safeStorageCipher("error.app.macSecureStorageUnavailable"),
           remoteServers,
@@ -4248,15 +4251,15 @@ export async function createApplicationServices({
     logger.warn(`OpenBot updates are disabled because the application version is not valid SemVer: ${currentVersion}`);
   }
   let updateAdapter: UpdateAdapter = createDisabledUpdateAdapter();
-  let updaterEnabled = updatesEnabled;
+  let updaterEnabled = DISTRIBUTION.desktopUpdatesEnabled && updatesEnabled;
   let updaterCacheDirectory: string | undefined;
-  if (updatesEnabled && hostedInstaller) {
+  if (updaterEnabled && hostedInstaller) {
     updateAdapter = new HostedUpdateAdapter({
       currentVersion,
       arch: process.arch,
       ...(containerInstaller ? { paths: CONTAINER_UPDATE_PATHS } : {}),
     });
-  } else if (updatesEnabled) {
+  } else if (updaterEnabled) {
     const realAdapter = await loadElectronUpdater();
     if (realAdapter) {
       updateAdapter = realAdapter;
@@ -4299,7 +4302,7 @@ export async function createApplicationServices({
     platform: process.platform,
     logDirectory: join(app.getPath("userData"), "logs", "update"),
     // Squirrel.Mac only. The path is meaningless under a Linux or Windows home directory.
-    ...(process.platform === "darwin"
+    ...(DISTRIBUTION.desktopUpdatesEnabled && process.platform === "darwin"
       ? {
           shipItDirectory: join(homedir(), "Library", "Caches", "app.openbot.desktop.ShipIt"),
           appBundlePath: join(app.getPath("exe"), "..", "..", ".."),

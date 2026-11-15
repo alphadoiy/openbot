@@ -312,9 +312,12 @@ if (commandLineUserDataDirectory) {
     ),
   );
 }
-app.setName("OpenBot");
+if (app.isPackaged && !commandLineUserDataDirectory) {
+  app.setPath("userData", join(app.getPath("appData"), "OpenBot Personal"));
+}
+app.setName("OpenBot Personal");
 app.enableSandbox();
-if (process.platform === "win32") app.setAppUserModelId("app.openbot.desktop");
+if (process.platform === "win32") app.setAppUserModelId("io.github.alphadoiy.openbot");
 // Linux: on Wayland, Chromium waits until a monitor is on before it starts. With none, start again on
 // XWayland. Before the single-instance lock, so that the new process can take it. A parent process or
 // systemd watches the process, the output and the input of a headless server, so it does not restart.

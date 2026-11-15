@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import { Effect } from "effect";
 import { createAccountAnalytics } from "./account-analytics";
 import { BillingSales } from "./billing-sales";
@@ -54,7 +55,7 @@ export function createHostedBilling(
     schedule: options.schedule,
     database: bindings.DB,
   });
-  const secretKey = bindings.STRIPE_SECRET_KEY?.trim();
+  const secretKey = DISTRIBUTION.commerceEnabled ? bindings.STRIPE_SECRET_KEY?.trim() : undefined;
   const sales =
     bindings.OPENPANEL_CLIENT_ID?.trim() && bindings.OPENPANEL_CLIENT_SECRET?.trim()
       ? new BillingSales({

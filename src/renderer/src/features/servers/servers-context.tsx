@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import type { HostedServerEntryPoint } from "@openbot/contracts/hosted-servers";
 import type { HostStatus, ServerNotificationLevel, ServerSummary } from "@openbot/contracts/ipc";
 import type { TeamCurrentCapability } from "@openbot/contracts/team-protocol/current";
@@ -348,10 +349,10 @@ const Servers = createSimpleContext({
         .hostedServers.list()
         .catch(() => null);
       if (!list) return hostedServersAvailable();
-      setHostedServersAvailable(list.available);
+      setHostedServersAvailable(DISTRIBUTION.commerceEnabled && list.available);
       setHostedServerIds(new Set(list.servers.map((server) => server.serverId)));
       setHostedServersLoaded(true);
-      return list.available;
+      return DISTRIBUTION.commerceEnabled && list.available;
     }
 
     // Each time the user enters a server that has a new version, the update dialog opens. A selection

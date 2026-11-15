@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import type { HostedServerEntryPoint } from "@openbot/contracts/hosted-servers";
 import type { PricingOrder } from "@openbot/contracts/license";
 import { createEffect, createSignal } from "solid-js";
@@ -33,10 +34,10 @@ export function createWebHostedServers(options: WebHostedServersOptions) {
     // A failed read keeps the last answer: a network error does not turn the plans off.
     const list = await calls.list().catch(() => null);
     if (!list) return available();
-    setAvailable(list.available);
+    setAvailable(DISTRIBUTION.commerceEnabled && list.available);
     setLoaded(true);
     setHostedIds(new Set(list.servers.map((server) => server.serverId)));
-    return list.available;
+    return DISTRIBUTION.commerceEnabled && list.available;
   }
   void refresh();
   // A server that the add server dialog creates comes into the host list as an owned host. Each owned
@@ -55,7 +56,7 @@ export function createWebHostedServers(options: WebHostedServersOptions) {
     },
   );
   createEffect(options.hostingReturn, (resume) => {
-    if (!resume) return;
+    if (!resume || !DISTRIBUTION.commerceEnabled) return;
     setAddServer({ resume, entryPoint: "checkout_resume", order: null });
     options.onHostingReturnConsumed?.();
   });

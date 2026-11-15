@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import type { ServerSummary } from "@openbot/contracts/ipc";
 import { classifyFailure } from "@openbot/telemetry";
 import type { ServerActionCallbacks } from "@openbot/ui/features/servers/ServerActionItems";
@@ -140,7 +141,8 @@ export function useServerActions() {
     // A server on this computer uses the leave confirmation, which deletes it in that case.
     onDelete: (serverId, trigger) =>
       onThisComputer(serverId) ? requestLeaveServer(serverId, trigger) : openHostedServerDelete(serverId, trigger),
-    canDelete: (serverId) => hostedServerIds().has(serverId) || onThisComputer(serverId),
+    canDelete: (serverId) =>
+      (DISTRIBUTION.commerceEnabled && hostedServerIds().has(serverId)) || onThisComputer(serverId),
     onRestart: requestRestartServer,
     // A self-hosted server restarts itself when its host has `host-restart-v1`; an older host does not.
     // It must be online: an offline server keeps its last capabilities, but cannot get the request.

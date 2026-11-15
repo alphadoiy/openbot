@@ -4,6 +4,7 @@ import {
   type BillingPlanId,
   isOpenBillingStatus,
 } from "@openbot/contracts/billing";
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import type {
   HostedServerCatalog,
   HostedServerCatalogPlan,
@@ -171,6 +172,7 @@ function dialogOrderOf(order: PricingOrder | null, state: LicenseState | null): 
  * The desktop main process and the web client open the page, so this view never gets its URL.
  */
 export function AddServerOverlay(props: AddServerOverlayProps) {
+  if (!DISTRIBUTION.commerceEnabled) return null;
   /**
    * One key for each choice, kept while its server waits for the payment. A second click on the same
    * plan, also after the dialog closed, then opens the same server and not a second one.
