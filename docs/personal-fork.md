@@ -59,9 +59,15 @@ as their app name and data directory, with a separate app ID. Workspaces, child-
 managed provider runtimes stay inside that profile. Existing OpenBot data is not imported.
 A manually supplied `--user-data-dir` takes precedence.
 
-Official installers in the upstream sections of README install the official app. This fork has
-not been packaged, signed or installed over it. Provider CLI logins can still use their provider's
-own user folders and credentials; profile isolation does not copy or erase those folders.
+Official installers in the upstream sections of README install the official app. Build a local
+personal DMG with `bun run dist:mac`; generated images stay under `dist/` and are not stored in Git.
+The local ARM64 image includes Computer Use and the voice runtime, uses a separate application ID,
+and is not Developer ID signed or notarized. Its image checksum, resources and Electron security
+fuses were checked; full Apple signature and application launch verification did not pass in the
+restricted execution environment. The original Electron binary also exits with code 134 there.
+See `dist/personal-package-report.json` for the local artifact report. Existing user data was not migrated.
+Provider CLI logins can still use their provider's own user folders and credentials; profile isolation
+does not copy or erase those folders.
 
 ## Checks
 
