@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import {
   developmentChildEnvironment,
   developmentSettingsForService,
@@ -16,6 +17,9 @@ async function main(): Promise<void> {
   const [mode, ...extra] = process.argv.slice(2).filter((argument) => argument !== "--");
   if (!mode || !["api", "remote", "stripe", "stripe-e2e", "deploy-test"].includes(mode)) {
     throw new Error("Choose api, remote, stripe, stripe-e2e, or deploy-test.");
+  }
+  if (!DISTRIBUTION.accountEnabled) {
+    throw new Error("Cloud service development commands are disabled in this local distribution. Use bun run dev.");
   }
   const environment =
     mode === "deploy-test"

@@ -8,6 +8,7 @@ import { connect } from "node:net";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import { parseMobileConnectUrl } from "@openbot/contracts/mobile-connect";
 import { isDynamicRecord, isNumber, isString } from "@openbot/contracts/runtime-values";
 import { createOpenBotLogger } from "@openbot/logging";
@@ -243,6 +244,9 @@ async function pairSimulator(desktop: DevInstanceRecord, simulator: string): Pro
 }
 
 async function main(): Promise<void> {
+  if (!DISTRIBUTION.accountEnabled) {
+    throw new Error("Mobile Connect development needs cloud accounts and is disabled in this local distribution.");
+  }
   if (process.platform !== "darwin") throw new Error("The iOS simulator requires macOS.");
   const options = parseDevMobileArgs(process.argv.slice(2));
 

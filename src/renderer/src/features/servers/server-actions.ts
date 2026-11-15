@@ -76,6 +76,10 @@ export function useServerActions() {
    */
   function add(): void {
     if (platform.landingPreview) return;
+    if (!DISTRIBUTION.accountEnabled) {
+      setCreateLocalServerOpen(true);
+      return;
+    }
     if (hostedServersAvailable()) setAddServerOpen(true, "server_rail");
     else setJoinServerOpen(true);
     void refreshHostedServersAvailable();
@@ -94,7 +98,8 @@ export function useServerActions() {
   }
 
   /** Opens the dialog with the command that installs a server on another computer and adds it to this account. */
-  const installServer = platform.landingPreview ? undefined : () => setInstallServerOpen(true);
+  const installServer =
+    platform.landingPreview || !DISTRIBUTION.accountEnabled ? undefined : () => setInstallServerOpen(true);
 
   /** As `addMenuCreateLocal`: the hosted server plans show the item in their "Other options" menu. */
   function addMenuInstallServer(): (() => void) | undefined {

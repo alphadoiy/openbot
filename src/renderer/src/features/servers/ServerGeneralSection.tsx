@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import { INPUT_LIMITS } from "@openbot/contracts/input-limits";
 import type { AvatarImageInput, ServerAppearance } from "@openbot/contracts/ipc";
 import {
@@ -109,7 +110,10 @@ export function createServerGeneralSection(host: ServerSettingsSectionHost): Ser
   let nameInput: HTMLInputElement | undefined;
 
   /** The host changes its own name and logo; an admin elsewhere asks it to while it is online. */
-  const canEditIdentity = () => serverCanAdminister(props.server, "host-admin-v1") && actionsAvailable();
+  const canEditIdentity = () =>
+    (DISTRIBUTION.accountEnabled || !local() || configured()) &&
+    serverCanAdminister(props.server, "host-admin-v1") &&
+    actionsAvailable();
   /**
    * An owner or admin chooses the plush look. A joined server needs `host-appearance-v1`; this
    * computer's server needs an identity first, which the first save of the name gives.

@@ -66,7 +66,7 @@ import { WorkspaceOverlays } from "./WorkspaceOverlays";
  * group and inert it.
  */
 export function WorkspaceShell(props: {
-  account: () => CentralAuthUser;
+  account: () => CentralAuthUser | null;
   /**
    * The startup splash covers the window and does not let heavy views mount yet. The first load then
    * shows no screen of its own, only its toast, and the chat waits to mount.

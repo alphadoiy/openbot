@@ -58,7 +58,14 @@ import { SettingsDynamicIslandTab } from "./SettingsDynamicIslandTab";
 import { SettingsGeneralTab } from "./SettingsGeneralTab";
 import { SettingsNotificationsTab } from "./SettingsNotificationsTab";
 import { SettingsVoiceTab } from "./SettingsVoiceTab";
-import { dynamicIslandSettingsShown, navItem, navItems, type SettingsTab, settingsTabShown } from "./settings-tabs";
+import {
+  distributionSettingsTab,
+  dynamicIslandSettingsShown,
+  navItem,
+  navItems,
+  type SettingsTab,
+  settingsTabShown,
+} from "./settings-tabs";
 import { createSettingsVoiceStore } from "./settings-voice-store";
 
 export interface SettingsModalProps {
@@ -90,11 +97,11 @@ export interface SettingsModalProps {
   onCancelScheduledRestart?: () => Promise<void>;
   onRestartWhenIdle?: () => Promise<void>;
   onCancelIdleRestart?: () => Promise<void>;
-  account: CentralAuthUser;
+  account: CentralAuthUser | null;
   onUpdateAccountName: (name: string) => Promise<void>;
   onUpdateAccountAvatar: (image: AvatarImageInput | null) => Promise<void>;
   /** Saves the chat color of the account. Members of each server of the user see it. */
-  onSetChatColor: (color: AvatarColor | null) => Promise<void>;
+  onSetChatColor?: ((color: AvatarColor | null) => Promise<void>) | undefined;
   onCreateMobileConnect?: () => Promise<MobileConnectTicket>;
   onCancelMobileConnect?: () => Promise<void>;
   onGetMobileConnectLink?: () => Promise<MobileConnectLink | null>;
@@ -144,21 +151,8 @@ export interface SettingsModalProps {
  */
 export function SettingsModal(props: SettingsModalProps) {
   const i18n = useI18n();
-  const [activeTab, setActiveTab] = createSignal<SettingsTab>(
-    untrack(() =>
-      !DISTRIBUTION.commerceEnabled && (props.initialTab === "billing" || props.initialTab === "hosted-servers")
-        ? "general"
-        : props.initialTab === "hosted-servers"
-          ? "billing"
-          : props.initialTab,
-    ) ?? "general",
-  );
+  const [activeTab, setActiveTab] = createSignal<SettingsTab>(untrack(() => distributionSettingsTab(props.initialTab)));
   let modalElement: HTMLElement | undefined;
-  const profile = createSettingsProfileStore(props, () => activeTab() === "profile");
-  const profileActivity = createProfileActivityStore(
-    () => props.open && activeTab() === "profile",
-    (stats) => renderProfileShareImage(props.account, stats),
-  );
   const mobileConnect = createSettingsMobileConnectStore(props, () => activeTab() === "mobile-connect");
   const updates = createSettingsUpdatesStore(props);
   const billing = createBillingStore(
@@ -190,8 +184,7 @@ export function SettingsModal(props: SettingsModalProps) {
   createEffect(
     () => {
       const tab = props.open ? props.openTab : undefined;
-      if (!DISTRIBUTION.commerceEnabled && (tab === "billing" || tab === "hosted-servers")) return "general";
-      return tab === "hosted-servers" ? "billing" : tab;
+      return tab === undefined ? undefined : distributionSettingsTab(tab);
     },
     (tab) => {
       if (!tab) return;
@@ -225,9 +218,9 @@ export function SettingsModal(props: SettingsModalProps) {
         (value === "dynamic-island" && dynamicIslandShown()) ||
         (value === "agent-dock" && agentDockShown()) ||
         value === "computer-use" ||
-        value === "profile" ||
+        (value === "profile" && DISTRIBUTION.accountEnabled) ||
         (value === "billing" && DISTRIBUTION.commerceEnabled) ||
-        value === "mobile-connect" ||
+        (value === "mobile-connect" && DISTRIBUTION.accountEnabled) ||
         value === "updates"
       ) {
         setActiveTab(value);
@@ -311,7 +304,7 @@ export function SettingsModal(props: SettingsModalProps) {
             onUpdateSetting={updateSetting}
             onUpdateSettings={updateSettings}
             selectMount={modalElement}
-            chatColor={props.account.chatColor ?? null}
+            chatColor={props.account?.chatColor ?? null}
             onSetChatColor={props.onSetChatColor}
           />
         </Tabs.Content>
@@ -326,7 +319,7 @@ export function SettingsModal(props: SettingsModalProps) {
             onUpdateSetting={updateSetting}
             onUpdateSettings={updateSettings}
             selectMount={modalElement}
-            chatColor={props.account.chatColor ?? null}
+            chatColor={props.account?.chatColor ?? null}
             onSetChatColor={props.onSetChatColor}
           />
         </Tabs.Content>
@@ -341,7 +334,7 @@ export function SettingsModal(props: SettingsModalProps) {
             onUpdateSetting={updateSetting}
             onUpdateSettings={updateSettings}
             selectMount={modalElement}
-            chatColor={props.account.chatColor ?? null}
+            chatColor={props.account?.chatColor ?? null}
             onSetChatColor={props.onSetChatColor}
           />
         </Tabs.Content>
@@ -406,16 +399,9 @@ export function SettingsModal(props: SettingsModalProps) {
           <ComputerUseSetup variant="settings" />
         </Tabs.Content>
 
-        <Tabs.Content value="profile" class="settings-modal-tab-panel profile-panel" data-tab="profile">
-          <SettingsProfileTab
-            store={profile}
-            account={props.account}
-            activity={profileActivity}
-            canListSessions={Boolean(props.onListAccountSessions)}
-            canRevokeSession={Boolean(props.onRevokeAccountSession)}
-            onSignOut={props.onSignOut}
-          />
-        </Tabs.Content>
+        <Show when={DISTRIBUTION.accountEnabled ? props.account : null}>
+          {(account) => <SettingsProfilePanel {...props} account={account()} active={activeTab() === "profile"} />}
+        </Show>
 
         <Tabs.Content value="billing" class="settings-modal-tab-panel" data-tab="billing">
           <BillingPanel
@@ -456,5 +442,26 @@ export function SettingsModal(props: SettingsModalProps) {
         </Tabs.Content>
       </SettingsDialogShell>
     </Tabs.Root>
+  );
+}
+
+/** Keep cloud profile stores out of account-free workspaces. */
+function SettingsProfilePanel(props: SettingsModalProps & { account: CentralAuthUser; active: boolean }) {
+  const profile = createSettingsProfileStore(props, () => props.active);
+  const activity = createProfileActivityStore(
+    () => props.open && props.active,
+    (stats) => renderProfileShareImage(props.account, stats),
+  );
+  return (
+    <Tabs.Content value="profile" class="settings-modal-tab-panel profile-panel" data-tab="profile">
+      <SettingsProfileTab
+        store={profile}
+        account={props.account}
+        activity={activity}
+        canListSessions={Boolean(props.onListAccountSessions)}
+        canRevokeSession={Boolean(props.onRevokeAccountSession)}
+        onSignOut={props.onSignOut}
+      />
+    </Tabs.Content>
   );
 }

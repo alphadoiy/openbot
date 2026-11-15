@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import { AppLoadingScreen } from "@openbot/ui/features/account/AppLoadingScreen";
 import { useText } from "@openbot/ui/text";
 import { createEffect, createMemo, createSignal, Loading, Show } from "solid-js";
@@ -47,10 +48,9 @@ function LoadingScreen() {
  * placeholders with a blank window and serialize the bootstrap loads that
  * currently run in parallel. See `app-providers.tsx`.
  *
- * `account` is threaded down as an accessor because the innermost `<Show>` is
- * what proves it non-null; the workspace and its overlays need the account, and
- * re-reading `signedInAccount()` below would hand them a nullable value the
- * gate has already ruled out.
+ * The local distribution enters after language selection without a cloud account.
+ * Its workspace receives a null account, while provider setup and local permissions
+ * retain their normal first-run flow. Cloud distributions retain their sign-in gate.
  */
 export function AppAccessGate() {
   const { t } = useText();
@@ -78,17 +78,22 @@ export function AppAccessGate() {
   // The splash also covers the first load of the workspace, which then shows no screen of its own.
   // On a start or a reload, the crew rain in once and hop out when the workspace is ready.
   const [workspaceReady, setWorkspaceReady] = createSignal(false);
+  const workspaceAllowed = () =>
+    DISTRIBUTION.accountEnabled ? auth.visibleSignedInAccount() !== null : languageStep.done();
   const workspaceShown = () =>
-    !!auth.visibleSignedInAccount() && (setup.setupState()?.completed === true || !scope.connection.hasContent);
+    workspaceAllowed() && (setup.setupState()?.completed === true || !scope.connection.hasContent);
   // While main loads the account, the splash cannot know if the workspace follows. It holds: a splash
   // that ended before the account came would rain again on the workspace's first load.
   const splashReady = () =>
-    started() && auth.centralAuth().status !== "loading" && (!workspaceShown() || workspaceReady());
+    started() &&
+    (!DISTRIBUTION.accountEnabled || auth.centralAuth().status !== "loading") &&
+    (!workspaceShown() || workspaceReady());
   const languageStep = createLanguageStep();
   // Only a settled sign-out: a code in flight or a retry keeps the sign-in screen it belongs to.
   // The language button reopens the wheel from an error too, so that state does not hide it.
   const languageStepShown = () =>
-    !languageStep.done() && (languageStep.reopened() || auth.centralAuth().status === "signed_out");
+    !languageStep.done() &&
+    (!DISTRIBUTION.accountEnabled || languageStep.reopened() || auth.centralAuth().status === "signed_out");
   // A computer signed in before the wheel existed has its language already, so a later sign-out skips the wheel.
   createEffect(
     () => auth.centralAuth().status === "signed_in",
@@ -109,7 +114,7 @@ export function AppAccessGate() {
     <>
       <Show when={started()}>
         <Show
-          when={auth.visibleSignedInAccount()}
+          when={workspaceAllowed()}
           fallback={
             <Loading fallback={<LoadingScreen />}>
               <Show
@@ -137,78 +142,76 @@ export function AppAccessGate() {
             </Loading>
           }
         >
-          {(account) => (
-            <Show
-              when={setup.setupState()?.completed}
-              fallback={
-                <Show
-                  when={scope.connection.hasContent}
-                  fallback={
-                    <WorkspaceShell
-                      account={account}
-                      behindSplash={splashMoving}
-                      onStartupReady={() => setWorkspaceReady(true)}
-                    />
-                  }
-                >
-                  <Show when={!setup.setupReadFailed()} fallback={<SetupReadError />}>
-                    <Show
-                      when={setup.pendingInviteUrl().trim()}
-                      fallback={
-                        <Loading fallback={<LoadingScreen />}>
-                          <FirstRunFlow
-                            {...setupProviders}
-                            state={
-                              setup.setupState() ?? { completed: false, preferredProvider: null, preferredModel: null }
-                            }
-                            platform={platform.appInfo()?.platform ?? "darwin"}
-                            onSave={setup.saveSetup}
-                            onAnalyticsChoice={(enabled, chosen) =>
-                              settings.updateGeneralSettings(
-                                { ...settings.generalSettings(), productAnalytics: enabled },
-                                { analyticsChosen: chosen },
-                              )
-                            }
-                            onProviderStepShown={detection.scanOnce}
-                            logoVariant={platform.appInfo()?.variant ?? "production"}
-                          />
-                        </Loading>
-                      }
-                    >
+          <Show
+            when={setup.setupState()?.completed}
+            fallback={
+              <Show
+                when={scope.connection.hasContent}
+                fallback={
+                  <WorkspaceShell
+                    account={auth.visibleSignedInAccount}
+                    behindSplash={splashMoving}
+                    onStartupReady={() => setWorkspaceReady(true)}
+                  />
+                }
+              >
+                <Show when={!setup.setupReadFailed()} fallback={<SetupReadError />}>
+                  <Show
+                    when={DISTRIBUTION.accountEnabled && setup.pendingInviteUrl().trim()}
+                    fallback={
                       <Loading fallback={<LoadingScreen />}>
-                        <InitialSetup
+                        <FirstRunFlow
                           {...setupProviders}
                           state={
                             setup.setupState() ?? { completed: false, preferredProvider: null, preferredModel: null }
                           }
                           platform={platform.appInfo()?.platform ?? "darwin"}
-                          accountEmail={account().email}
-                          inviteUrl={setup.pendingInviteUrl()}
                           onSave={setup.saveSetup}
-                          onPreviewInvite={setup.previewInvite}
-                          onJoinRemote={joinRemoteDuringSetup}
-                          onLogout={auth.logoutCentralAccount}
+                          onAnalyticsChoice={(enabled, chosen) =>
+                            settings.updateGeneralSettings(
+                              { ...settings.generalSettings(), productAnalytics: enabled },
+                              { analyticsChosen: chosen },
+                            )
+                          }
+                          onProviderStepShown={detection.scanOnce}
+                          logoVariant={platform.appInfo()?.variant ?? "production"}
                         />
                       </Loading>
-                    </Show>
+                    }
+                  >
+                    <Loading fallback={<LoadingScreen />}>
+                      <InitialSetup
+                        {...setupProviders}
+                        state={
+                          setup.setupState() ?? { completed: false, preferredProvider: null, preferredModel: null }
+                        }
+                        platform={platform.appInfo()?.platform ?? "darwin"}
+                        accountEmail={auth.visibleSignedInAccount()?.email ?? ""}
+                        inviteUrl={setup.pendingInviteUrl()}
+                        onSave={setup.saveSetup}
+                        onPreviewInvite={setup.previewInvite}
+                        onJoinRemote={joinRemoteDuringSetup}
+                        onLogout={auth.logoutCentralAccount}
+                      />
+                    </Loading>
                   </Show>
                 </Show>
-              }
-            >
-              <WorkspaceShell
-                account={account}
-                behindSplash={splashMoving}
-                onStartupReady={() => setWorkspaceReady(true)}
-              />
-            </Show>
-          )}
+              </Show>
+            }
+          >
+            <WorkspaceShell
+              account={auth.visibleSignedInAccount}
+              behindSplash={splashMoving}
+              onStartupReady={() => setWorkspaceReady(true)}
+            />
+          </Show>
         </Show>
       </Show>
       <WhatsNewOverlay
         ready={
           !platform.chatWindow &&
           !splashShown() &&
-          !!auth.visibleSignedInAccount() &&
+          workspaceAllowed() &&
           (setup.setupState()?.completed === true || !scope.connection.hasContent)
         }
       />

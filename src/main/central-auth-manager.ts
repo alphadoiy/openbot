@@ -89,6 +89,8 @@ interface CentralAuthEvents {
 type AuthFetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
 interface CentralAuthManagerOptions {
+  /** False for a local distribution that must not restore or contact a cloud account. */
+  enabled?: boolean;
   apiUrl: string;
   mobileConnectApiUrl?: string;
   storagePath: string;
@@ -247,6 +249,7 @@ export class CentralAuthManager extends EventEmitter<CentralAuthEvents> {
     this.#transport = CentralAuthTransport.layer(fetcher);
     this.#options = {
       ...options,
+      enabled: options.enabled ?? true,
       mobileConnectApiUrl: options.mobileConnectApiUrl ?? options.apiUrl,
       canPersist: options.canPersist ?? (() => true),
       keyringChanged: options.keyringChanged ?? (() => false),
@@ -272,8 +275,15 @@ export class CentralAuthManager extends EventEmitter<CentralAuthEvents> {
   }).bind(this);
   #owned<A>(
     operation: Effect.Effect<A, CentralAuthOperationError, CentralAuthTransport>,
+    allowDisabled = false,
   ): Effect.Effect<A, CentralAuthOperationError> {
     return Effect.suspend(() => {
+      if (!this.#options.enabled && !allowDisabled)
+        return Effect.fail(
+          new CentralAuthOperationError({
+            cause: new AuthApiError(401, "unauthorized", sourceText("error.auth.signInRequired")),
+          }),
+        );
       const done = Deferred.makeUnsafe<void>();
       this.#pending.add(done);
       return operation.pipe(
@@ -1468,6 +1478,9 @@ export class CentralAuthManager extends EventEmitter<CentralAuthEvents> {
 
   readonly initialize = Effect.fn("CentralAuth.initializeAdmission")(
     function* (this: CentralAuthManager) {
+      // Leave saved sessions untouched. Local use must not wait for the account service or restore
+      // credentials that can publish this computer to a cloud account.
+      if (!this.#options.enabled) return this.#setState({ status: "signed_out" });
       if (this.#initialization) return yield* Deferred.await(this.#initialization);
       const pending = Deferred.makeUnsafe<CentralAuthState, CentralAuthOperationError>();
       this.#initialization = pending;
@@ -1487,7 +1500,7 @@ export class CentralAuthManager extends EventEmitter<CentralAuthEvents> {
         ),
       );
     },
-    (operation) => this.#owned(operation),
+    (operation) => this.#owned(operation, true),
   ).bind(this);
 
   retry() {
@@ -2018,7 +2031,7 @@ export class CentralAuthManager extends EventEmitter<CentralAuthEvents> {
 
   /** False when the session can live only in memory, so it would be lost at the next start. */
   canPersistSession(): boolean {
-    return this.#options.canPersist();
+    return this.#options.enabled && this.#options.canPersist();
   }
 
   /**

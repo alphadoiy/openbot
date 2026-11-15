@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import type { ChatWindowTarget } from "@openbot/contracts/ipc";
 import { AGENT_NOTIFICATION_LEVELS_CAPABILITY } from "@openbot/contracts/team-protocol/agent-notification-levels-v1";
 import { CONVERSATION_UNREAD_FROM_CAPABILITY } from "@openbot/contracts/team-protocol/conversation-unread-from-v1";
@@ -332,7 +333,11 @@ export function WorkspaceSidebar(props: { peopleEnabled: boolean }) {
               members={teamPresence().members}
               onOpenStorage={(serverId) => openServerSettings(serverId, null, "storage")}
             />
-            <Show when={!platform.landingPreview && !alertCards.shown() && !mobileAppDismissed()}>
+            <Show
+              when={
+                DISTRIBUTION.accountEnabled && !platform.landingPreview && !alertCards.shown() && !mobileAppDismissed()
+              }
+            >
               <SidebarMobileAppCard
                 onOpenInstall={() => openAppSettings(null, "mobile-connect")}
                 onDismiss={() => {

@@ -94,7 +94,7 @@ import {
 } from "./WorkspaceOverlayViews";
 
 interface AccountProps {
-  account: () => CentralAuthUser;
+  account: () => CentralAuthUser | null;
 }
 
 /**
@@ -125,11 +125,17 @@ export function WorkspaceOverlays(props: AccountProps) {
   return (
     <>
       <SharedAgentInstall />
-      <JoinServer account={props.account} />
-      <AddServer />
+      <Show when={DISTRIBUTION.accountEnabled ? props.account() : null}>
+        {(account) => (
+          <>
+            <JoinServer account={account} />
+            <AddServer />
+            <InstallServer />
+            <HostedUpsell account={account} />
+          </>
+        )}
+      </Show>
       <CreateLocalServer />
-      <InstallServer />
-      <HostedUpsell account={props.account} />
       <LeaveServer />
       <RestartServer />
       <ServerSettings />
@@ -224,7 +230,7 @@ function SharedAgentInstall() {
 }
 
 /** Joining a team server from an invite link. */
-function JoinServer(props: AccountProps) {
+function JoinServer(props: { account: () => CentralAuthUser }) {
   const setup = useSetup();
   const { joinServerOpen, setJoinServerOpen } = useServers();
   const { joinServer } = useServerSelection();
@@ -367,7 +373,7 @@ function AddServer() {
  * computer. The modal opens only after the first routine on this computer, when the turn of the agent
  * that made it ends.
  */
-function HostedUpsell(props: AccountProps) {
+function HostedUpsell(props: { account: () => CentralAuthUser }) {
   const { activeServer, hostedServersAvailable, hostedServersLoaded, hostedServerIds, setAddServerOpen } = useServers();
   const { activeTurns, routinesByConversation } = useTurns();
   const platform = usePlatform();
@@ -934,10 +940,10 @@ function ServerSettings() {
           onSaveIdentity={saveServerIdentity}
           onSaveAppearance={saveServerAppearance}
           onSetPublished={setServerPublished}
-          onRotateHostKey={serverRotatesHostKey(server()) ? rotateHostKey : undefined}
+          onRotateHostKey={DISTRIBUTION.accountEnabled && serverRotatesHostKey(server()) ? rotateHostKey : undefined}
           onCreateInvite={createServerInvite}
           license={DISTRIBUTION.commerceEnabled ? appPort().license : undefined}
-          companySignIn={appPort().auth}
+          companySignIn={DISTRIBUTION.accountEnabled ? appPort().auth : undefined}
           onContactUs={() => void appPort().openExternal("hosted-server-contact")}
           onUpdateMember={updateServerMember}
           onRemoveMember={removeServerMember}
@@ -1003,7 +1009,7 @@ function ServerSettings() {
           // This computer, or a remote host with `hosted-sites-v1`. Every member lists; the host deletes
           // only for an owner or admin.
           hostedSites={
-            serverSupportsCapability(server(), "hosted-sites-v1")
+            DISTRIBUTION.accountEnabled && serverSupportsCapability(server(), "hosted-sites-v1")
               ? {
                   api: appPort().hostedSites,
                   onOpenSite: (url) => void appPort().openUrl(url),
@@ -1164,7 +1170,7 @@ function AppSettings(props: AccountProps) {
         account={props.account()}
         onUpdateAccountName={auth.updateAccountName}
         onUpdateAccountAvatar={auth.updateAccountAvatar}
-        onSetChatColor={auth.setChatColor}
+        onSetChatColor={DISTRIBUTION.accountEnabled ? auth.setChatColor : undefined}
         onCreateMobileConnect={auth.createMobileConnect}
         onCancelMobileConnect={auth.cancelMobileConnect}
         onGetMobileConnectLink={auth.getMobileConnectLink}

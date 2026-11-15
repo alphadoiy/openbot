@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import { BookMarked, Bot, CalendarClock, Hash, Server, Sparkles, Store, UsersRound } from "@openbot/ui";
 import type {
   GlobalSearchAction,
@@ -169,24 +170,23 @@ export function useGlobalSearchSources(open: () => boolean) {
         });
       }
       if (server) {
-        list.push(
-          {
-            id: "server:general",
-            label: t("server.settings.generalTitle"),
-            detail: server.name,
-            group: "settings",
-            icon: Server,
-            run: () => openServerSettings(server.id, globalSearchOpener(), "general"),
-          },
-          {
+        list.push({
+          id: "server:general",
+          label: t("server.settings.generalTitle"),
+          detail: server.name,
+          group: "settings",
+          icon: Server,
+          run: () => openServerSettings(server.id, globalSearchOpener(), "general"),
+        });
+        if (DISTRIBUTION.accountEnabled)
+          list.push({
             id: "server:members",
             label: t("server.settings.membersTitle"),
             detail: server.name,
             group: "settings",
             icon: UsersRound,
             run: () => openServerSettings(server.id, globalSearchOpener(), "members"),
-          },
-        );
+          });
         // Memory shows the row only to an admin of a host that can set it, and only while it is online.
         if (
           serverCanAdminister(server, "agent-memory-limit-v1") &&

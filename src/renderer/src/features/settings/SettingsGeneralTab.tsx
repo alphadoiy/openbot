@@ -67,7 +67,7 @@ interface SettingsGeneralTabProps {
   onUpdateSettings: (patch: Partial<GeneralSettingsValue>) => void;
   /** The chat color of the account, or null for none. */
   chatColor: AvatarColor | null;
-  onSetChatColor: (color: AvatarColor | null) => Promise<void>;
+  onSetChatColor?: ((color: AvatarColor | null) => Promise<void>) | undefined;
 }
 
 export function SettingsGeneralTab(props: SettingsGeneralTabProps) {
@@ -265,12 +265,14 @@ function AppearanceRows(props: SettingsGeneralTabProps) {
   const interfaceFontTitleId = `settings-interface-font-${createUniqueId()}`;
   const codeFontTitleId = `settings-code-font-${createUniqueId()}`;
   const { format, errorMessage } = useText();
-  const saveChatColor = (color: AvatarColor | null) =>
+  const saveChatColor = (color: AvatarColor | null) => {
+    if (!props.onSetChatColor) return;
     void props
       .onSetChatColor(color)
       .catch((error: unknown) =>
         toast.error(errorMessage(error, i18n.t("settings.preferences.saveFailed")), { error }),
       );
+  };
   const interfaceSizeLabel = (value: AppInterfaceSize | undefined) =>
     value === undefined ? "" : format.percent(value / 100);
   return (
@@ -310,15 +312,17 @@ function AppearanceRows(props: SettingsGeneralTabProps) {
             </ItemContent>
             <LogoColorPicker value={logoColor.color()} onChange={logoColor.changeColor} />
           </Item>
-          <Item data-settings-row="settings.chatColor.title" class="settings-modal-row">
-            <ItemContent>
-              <ItemTitle>{i18n.t("settings.chatColor.title")}</ItemTitle>
-              <ItemDescription>{i18n.t("settings.chatColor.description")}</ItemDescription>
-            </ItemContent>
-            <ItemActions>
-              <OwnChatColorTrigger value={props.chatColor} onChange={saveChatColor} />
-            </ItemActions>
-          </Item>
+          <Show when={props.onSetChatColor}>
+            <Item data-settings-row="settings.chatColor.title" class="settings-modal-row">
+              <ItemContent>
+                <ItemTitle>{i18n.t("settings.chatColor.title")}</ItemTitle>
+                <ItemDescription>{i18n.t("settings.chatColor.description")}</ItemDescription>
+              </ItemContent>
+              <ItemActions>
+                <OwnChatColorTrigger value={props.chatColor} onChange={saveChatColor} />
+              </ItemActions>
+            </Item>
+          </Show>
           <Item data-settings-row="settings.bubbleStyle.title" class="settings-modal-row">
             <ItemContent>
               <ItemTitle>{i18n.t("settings.bubbleStyle.title")}</ItemTitle>

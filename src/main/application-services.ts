@@ -1239,6 +1239,7 @@ export async function createApplicationServices({
     app.isPackaged ? "https://api.openbot.run" : "http://127.0.0.1:3100",
   );
   const centralAuth = new CentralAuthManager({
+    enabled: DISTRIBUTION.accountEnabled,
     apiUrl: centralAuthApiUrl,
     mobileConnectApiUrl: readMobileConnectApiUrl(process.env.OPENBOT_MOBILE_AUTH_API_URL, centralAuthApiUrl),
     storagePath: join(app.getPath("userData"), CENTRAL_AUTH_FILE),
@@ -1261,7 +1262,7 @@ export async function createApplicationServices({
   let profileRefreshing = false;
   let profileRefreshAgain = false;
   const refreshAccountProfile = async () => {
-    if (!profileRefreshActive) return;
+    if (!DISTRIBUTION.accountEnabled || !profileRefreshActive) return;
     if (profileRefreshing) {
       profileRefreshAgain = true;
       return;
@@ -1283,6 +1284,7 @@ export async function createApplicationServices({
   };
   const startProfileTimer = () => {
     stopProfileTimer();
+    if (!DISTRIBUTION.accountEnabled) return;
     profileTimer = setInterval(() => void refreshAccountProfile(), REMOTE_ACCOUNT_CHECK_INTERVAL_MS);
     profileTimer.unref();
   };
@@ -1697,7 +1699,9 @@ export async function createApplicationServices({
     localServerChild?.runtimeRoot ??
     providerRuntimeRoot({
       appData: app.getPath("appData"),
-      userDataOverride: app.commandLine.getSwitchValue("user-data-dir"),
+      userDataOverride: DISTRIBUTION.accountEnabled
+        ? app.commandLine.getSwitchValue("user-data-dir")
+        : app.getPath("userData"),
     });
   const providerDownloads = join(app.getPath("userData"), "provider-runtimes", ".downloads");
   const hermesInstaller = new HermesInstaller({
@@ -3931,30 +3935,35 @@ export async function createApplicationServices({
         wake: (serverId) => hostedServers.wake(serverId),
         status: (serverId) => hostedServers.status(serverId),
       },
-      webrtcTransport: new TeamWebRtcClientTransport({
-        bridge: teamWebRtcBridge,
-        listHosts: () => centralAuth.listRemoteHosts(),
-        startSession: (hostId) => centralAuth.startRemoteSession(hostId),
-        issueTicket: (sessionId, clientPublicKey) => centralAuth.issueRemoteSessionTicket(sessionId, clientPublicKey),
-        endSession: (sessionId) => centralAuth.endRemoteSession(sessionId),
-        createInvite: (hostId, input) => centralAuth.createRemoteInvite(hostId, input),
-        listInvites: (hostId) => centralAuth.listRemoteInvites(hostId),
-        previewInvite: (token) => centralAuth.previewRemoteInvite(token),
-        acceptInvite: (token) => centralAuth.acceptRemoteInvite(token),
-        revokeInvite: (inviteId) => centralAuth.revokeRemoteInvite(inviteId),
-        listMembers: (hostId) => centralAuth.listRemoteMembers(hostId),
-        updateMember: (hostId, membershipId, role, reactivate) =>
-          centralAuth.updateRemoteMember(hostId, membershipId, role, reactivate),
-        removeMember: (hostId, membershipId) => centralAuth.removeRemoteMember(hostId, membershipId),
-        removeOwnedHost: (hostId) => centralAuth.removeOwnedRemoteHost(hostId),
-        getPrincipalId: () => centralAuth.getSignedInUser().id,
-        controlPlaneUrl: centralAuth.resolveApiUrl("/"),
-        downloadHostLogo: (hostId, version) => centralAuth.downloadRemoteHostLogo(hostId, version),
-        transferDirectory: join(app.getPath("userData"), "remote-transfers"),
-        connectTrace,
-        sessionCache: remoteSessionCache,
-        developmentRoundTripMs,
-      }),
+      ...(DISTRIBUTION.accountEnabled
+        ? {
+            webrtcTransport: new TeamWebRtcClientTransport({
+              bridge: teamWebRtcBridge,
+              listHosts: () => centralAuth.listRemoteHosts(),
+              startSession: (hostId) => centralAuth.startRemoteSession(hostId),
+              issueTicket: (sessionId, clientPublicKey) =>
+                centralAuth.issueRemoteSessionTicket(sessionId, clientPublicKey),
+              endSession: (sessionId) => centralAuth.endRemoteSession(sessionId),
+              createInvite: (hostId, input) => centralAuth.createRemoteInvite(hostId, input),
+              listInvites: (hostId) => centralAuth.listRemoteInvites(hostId),
+              previewInvite: (token) => centralAuth.previewRemoteInvite(token),
+              acceptInvite: (token) => centralAuth.acceptRemoteInvite(token),
+              revokeInvite: (inviteId) => centralAuth.revokeRemoteInvite(inviteId),
+              listMembers: (hostId) => centralAuth.listRemoteMembers(hostId),
+              updateMember: (hostId, membershipId, role, reactivate) =>
+                centralAuth.updateRemoteMember(hostId, membershipId, role, reactivate),
+              removeMember: (hostId, membershipId) => centralAuth.removeRemoteMember(hostId, membershipId),
+              removeOwnedHost: (hostId) => centralAuth.removeOwnedRemoteHost(hostId),
+              getPrincipalId: () => centralAuth.getSignedInUser().id,
+              controlPlaneUrl: centralAuth.resolveApiUrl("/"),
+              downloadHostLogo: (hostId, version) => centralAuth.downloadRemoteHostLogo(hostId, version),
+              transferDirectory: join(app.getPath("userData"), "remote-transfers"),
+              connectTrace,
+              sessionCache: remoteSessionCache,
+              developmentRoundTripMs,
+            }),
+          }
+        : {}),
     },
   );
   // A server joined or revoked on another device of this account. Signal carries it to every socket

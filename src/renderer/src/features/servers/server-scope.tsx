@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import type { ChannelSummary } from "@openbot/contracts/ipc";
 import { AGENT_NOTIFICATION_LEVELS_CAPABILITY } from "@openbot/contracts/team-protocol/agent-notification-levels-v1";
 import { AGENT_HIDDEN_CAPABILITY } from "@openbot/contracts/team-protocol/current";
@@ -346,7 +347,7 @@ const ServerScope = createSimpleContext({
       const handleGlobalSearchShortcut = (event: KeyboardEvent) => {
         if (
           !isGlobalSearchShortcut(event) ||
-          centralAuth().status !== "signed_in" ||
+          (DISTRIBUTION.accountEnabled && centralAuth().status !== "signed_in") ||
           setupState()?.completed !== true
         ) {
           return;

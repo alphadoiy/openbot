@@ -80,7 +80,7 @@ import { trackUsageLimitShown, usageLimitAskFrom } from "./usage-limit-ask";
  * rather than captured once.
  */
 
-export function WorkspaceConversation(props: { account: () => CentralAuthUser }) {
+export function WorkspaceConversation(props: { account: () => CentralAuthUser | null }) {
   const scopeIsCurrent = createScopeGuard();
   const serverScope = useServerScope();
   const platform = usePlatform();
@@ -604,7 +604,7 @@ export function WorkspaceConversation(props: { account: () => CentralAuthUser })
         server={activeServer()}
         responseStyle={responseStyle()}
         presence={teamPresence()}
-        currentUserEmail={props.account().email}
+        currentUserEmail={props.account()?.email ?? ""}
         isOwnSender={isOwnSender}
         // The browser and the remote desktop show in the main window only.
         browserEnabled={

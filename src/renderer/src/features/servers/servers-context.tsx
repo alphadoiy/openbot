@@ -344,6 +344,10 @@ const Servers = createSimpleContext({
      * account can change after the start.
      */
     async function refreshHostedServersAvailable(): Promise<boolean> {
+      if (!DISTRIBUTION.accountEnabled) {
+        setHostedServersLoaded(true);
+        return false;
+      }
       // A failed read keeps the last answer: a network error does not turn the plans off.
       const list = await serversPort()
         .hostedServers.list()

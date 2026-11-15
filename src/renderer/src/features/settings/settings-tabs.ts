@@ -44,7 +44,11 @@ type SettingsRow = {
 };
 
 /** False for a row that this platform does not show, so the search does not find it. */
-export function settingsRowShown(row: { macOS?: boolean }, platform: AppInfo["platform"] | undefined): boolean {
+export function settingsRowShown(
+  row: { macOS?: boolean; titleKey?: AppTextKey },
+  platform: AppInfo["platform"] | undefined,
+): boolean {
+  if (!DISTRIBUTION.accountEnabled && row.titleKey === "settings.chatColor.title") return false;
   return row.macOS === undefined || row.macOS === (platform === "darwin");
 }
 
@@ -274,6 +278,7 @@ export function settingsTabShown(
   window: { platform: AppInfo["platform"] | undefined; chatWindow: boolean },
 ): boolean {
   if (tab === "hosted-servers" || (tab === "billing" && !DISTRIBUTION.commerceEnabled)) return false;
+  if (!DISTRIBUTION.accountEnabled && (tab === "profile" || tab === "mobile-connect")) return false;
   if (tab === "dynamic-island") return dynamicIslandSettingsShown(window.platform, window.chatWindow);
   if (tab === "agent-dock") return window.platform !== undefined && !window.chatWindow;
   return true;
@@ -285,4 +290,14 @@ export function settingsTabShown(
  */
 export function dynamicIslandSettingsShown(platform: AppInfo["platform"] | undefined, chatWindow: boolean): boolean {
   return platform !== undefined && !chatWindow;
+}
+
+/** Cloud settings links return to General in the account-free distribution. */
+export function distributionSettingsTab(tab: SettingsTab | undefined): SettingsTab {
+  if (
+    (!DISTRIBUTION.accountEnabled && (tab === "profile" || tab === "mobile-connect")) ||
+    (!DISTRIBUTION.commerceEnabled && (tab === "billing" || tab === "hosted-servers"))
+  )
+    return "general";
+  return tab === "hosted-servers" ? "billing" : (tab ?? "general");
 }

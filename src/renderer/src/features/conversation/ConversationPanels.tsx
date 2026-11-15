@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import { LOCAL_SERVER_ID, type ServerSummary } from "@openbot/contracts/ipc";
 import { AGENT_MEMORY_LIMIT_CAPABILITY } from "@openbot/contracts/team-protocol/agent-memory-limit-v1";
 import { AGENT_NOTIFICATION_LEVELS_CAPABILITY } from "@openbot/contracts/team-protocol/agent-notification-levels-v1";
@@ -372,10 +373,11 @@ export function ConversationPanels(panelProps: { onOpenUsage?: ((trigger: HTMLBu
     return remote && remote.serverId === memoryLimitServerId() ? remote.limit : undefined;
   };
   const canPublish = () =>
-    props.runtime
+    DISTRIBUTION.accountEnabled &&
+    (props.runtime
       ? props.runtime.admin !== undefined && serverCanAdminister(props.server, "agent-publish-v1")
       : props.server?.kind === "local" ||
-        (props.server?.kind === "remote" && serverCanAdminister(props.server, "agent-publish-v1"));
+        (props.server?.kind === "remote" && serverCanAdminister(props.server, "agent-publish-v1")));
   // The web client asks the host directly; desktop goes through main for this computer and for a joined server.
   // The calls follow the server id, so a new summary of the same server keeps the loaded profiles.
   const browserProfileServerId = createMemo(() =>

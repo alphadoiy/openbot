@@ -1,5 +1,6 @@
 import { uptime } from "node:os";
 import { join, resolve } from "node:path";
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import { parseInviteUrl, selfHostedApiOrigin } from "@openbot/contracts/invite-links";
 import {
   type AgentEvent,
@@ -52,6 +53,7 @@ import { guardDevelopmentOutput } from "./development-output";
 import {
   developmentUserDataName,
   developmentWorktreeColor,
+  localDevelopmentProfileRoot,
   readAnalyticsCaptureUrl,
   readDevelopmentInstanceId,
   readDevelopmentProfile,
@@ -304,7 +306,7 @@ if (commandLineUserDataDirectory) {
   app.setPath(
     "userData",
     join(
-      app.getPath("appData"),
+      DISTRIBUTION.accountEnabled ? app.getPath("appData") : localDevelopmentProfileRoot(app.getAppPath()),
       developmentUserDataName(
         developmentProfile ?? "app",
         readDevelopmentInstanceId(process.env.OPENBOT_DEV_INSTANCE_ID),

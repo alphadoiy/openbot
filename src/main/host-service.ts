@@ -2275,7 +2275,14 @@ export class HostService extends EventEmitter<HostEvents> {
   }
 
   #currentAgentReaderId(): string {
-    const accountReaderId = `local-user:${this.#options.getSignedInUser().id}`;
+    let user: CentralAuthUser;
+    try {
+      user = this.#options.getSignedInUser();
+    } catch {
+      // Local IPC remains available while signed out. Remote routes use their authenticated member.
+      return SIGNED_OUT_CHANNEL_MEMBER_ID;
+    }
+    const accountReaderId = `local-user:${user.id}`;
     const memberId = this.#findCurrentMemberId();
     // Channel reads are keyed by the reader id this method answers, so they adopt with it.
     if (!memberId) {

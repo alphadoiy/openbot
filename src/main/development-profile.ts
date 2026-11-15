@@ -1,7 +1,14 @@
 import { createHash } from "node:crypto";
 import { realpathSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 export type DevelopmentProfile = "app" | "test-client";
+
+/** Keeps the personal development profiles inside their checkout, separate from installed apps. */
+export function localDevelopmentProfileRoot(projectRoot: string, environment: NodeJS.ProcessEnv = process.env): string {
+  const override = environment.OPENBOT_DEV_PROFILE_ROOT?.trim();
+  return override ? resolve(projectRoot, override) : join(projectRoot, ".openbot", "profiles");
+}
 
 export function readDevelopmentProfile(value: string | undefined): DevelopmentProfile {
   return value === "test-client" ? "test-client" : "app";

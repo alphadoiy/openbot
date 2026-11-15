@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { constants, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DISTRIBUTION } from "../packages/contracts/src/distribution";
 import { developmentInstanceIdForWorktree } from "../src/main/development-profile";
 import { type DevelopmentStateOutcome, ensureDevelopmentState } from "./development-secrets";
 
@@ -40,11 +41,14 @@ export interface DevelopmentPreparationInput {
 export function prepareDevelopmentEnvironment(input: DevelopmentPreparationInput = {}): DevelopmentStateOutcome {
   const projectRoot = input.projectRoot ?? developmentProjectRoot;
   assertSupportedBunVersion(input.bunVersion ?? process.versions.bun ?? "unknown");
-  // Copy state before generation so a new worktree retains the main checkout's identity.
-  const copied = copyWorktreeIncludes(projectRoot, input.mainCheckoutRoot ?? findMainCheckoutRoot(projectRoot));
-  for (const path of copied) process.stdout.write(`Copied ${path} from the main checkout.\n`);
-  // State generation uses Node built-ins and needs no decryption key or installed packages.
-  const stateOutcome = ensureDevelopmentState(projectRoot);
+  let stateOutcome: DevelopmentStateOutcome = "kept";
+  if (DISTRIBUTION.accountEnabled) {
+    // Copy state before generation so a new worktree retains the main checkout's identity.
+    const copied = copyWorktreeIncludes(projectRoot, input.mainCheckoutRoot ?? findMainCheckoutRoot(projectRoot));
+    for (const path of copied) process.stdout.write(`Copied ${path} from the main checkout.\n`);
+    // State generation uses Node built-ins and needs no decryption key or installed packages.
+    stateOutcome = ensureDevelopmentState(projectRoot);
+  }
 
   const executable = input.executable ?? process.execPath;
   const run = input.run ?? execDevelopmentCommand;
@@ -55,11 +59,13 @@ export function prepareDevelopmentEnvironment(input: DevelopmentPreparationInput
     () => installFingerprint(projectRoot),
     () => run(executable, ["install", "--frozen-lockfile"], options),
   );
-  runUnlessStamped(
-    join(projectRoot, MIGRATION_STAMP),
-    () => (existsSync(join(projectRoot, LOCAL_D1_STATE)) ? migrationFingerprint(projectRoot) : null),
-    () => run(executable, ["run", "api:migrate:local"], options),
-  );
+  if (DISTRIBUTION.accountEnabled) {
+    runUnlessStamped(
+      join(projectRoot, MIGRATION_STAMP),
+      () => (existsSync(join(projectRoot, LOCAL_D1_STATE)) ? migrationFingerprint(projectRoot) : null),
+      () => run(executable, ["run", "api:migrate:local"], options),
+    );
+  }
   return stateOutcome;
 }
 
@@ -159,6 +165,7 @@ function fingerprintFiles(projectRoot: string, files: string[], extra: string[])
 export function prepareDevelopmentWorktree(input: DevelopmentPreparationInput = {}): DevelopmentStateOutcome {
   const projectRoot = input.projectRoot ?? developmentProjectRoot;
   const stateOutcome = prepareDevelopmentEnvironment({ ...input, projectRoot });
+  if (!DISTRIBUTION.accountEnabled) return stateOutcome;
   const executable = input.executable ?? process.execPath;
   const run = input.run ?? execDevelopmentCommand;
   const options = { cwd: projectRoot, stdio: "inherit" as const };

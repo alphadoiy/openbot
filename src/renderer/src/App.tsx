@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import { NotificationObserver, Toaster } from "@openbot/ui";
 import { AppAccessGate } from "./AppView";
 import { type AppProps, AppProviders } from "./app-providers";
@@ -8,7 +9,7 @@ export function App(props: AppProps = {}) {
     <NotificationObserver onShown={reportNotification}>
       <AppProviders
         landingPreview={props.landingPreview}
-        peopleEnabled={props.peopleEnabled}
+        peopleEnabled={DISTRIBUTION.accountEnabled ? props.peopleEnabled : false}
         chatWindow={props.chatWindow}
       >
         <AppAccessGate />

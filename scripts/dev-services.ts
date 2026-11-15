@@ -5,6 +5,7 @@ import { createServer } from "node:net";
 import { type NetworkInterfaceInfo, networkInterfaces } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import { createOpenBotLogger, toLogValue } from "@openbot/logging";
 import { cliSpawnTarget } from "../src/backend/cli";
 import {
@@ -83,8 +84,18 @@ export function developmentEnvironmentForTarget(
   target: DevelopmentTarget,
   environment: NodeJS.ProcessEnv = process.env,
 ): NodeJS.ProcessEnv {
+  if (
+    !DISTRIBUTION.accountEnabled &&
+    ((environment.OPENBOT_DEV_REMOTE_ROLE && environment.OPENBOT_DEV_REMOTE_ROLE !== "none") ||
+      environment.OPENBOT_DEV_TEST_CLIENT_ENABLED === "1")
+  ) {
+    throw new Error(
+      "Cloud development roles are disabled in this local distribution. Remove the remote role and test-client settings.",
+    );
+  }
   return {
     ...environment,
+    ...(!DISTRIBUTION.accountEnabled ? { OPENBOT_DEV_REMOTE_ROLE: "none" } : {}),
     OPENBOT_DEV_TEST_CLIENT_ENABLED: target === "test-client" ? "1" : "0",
   };
 }
@@ -105,6 +116,12 @@ const DEFAULT_REMOTE_DEBUGGING_PORTS = {
 } as const;
 
 export function servicesForTarget(target: DevelopmentTarget): DevelopmentService[] {
+  if (!DISTRIBUTION.accountEnabled) {
+    if (target === "app") return ["app"];
+    throw new Error(
+      `The ${target} development target needs cloud accounts. Use bun run dev for local desktop development.`,
+    );
+  }
   if (target === "all") return ["api", "remote", "app"];
   if (target === "test-client") return ["api", "remote", "app", "test-client"];
   if (target === "api") return ["api"];
@@ -115,6 +132,9 @@ export function createDevelopmentServiceSpec(
   name: DevelopmentService,
   environment: NodeJS.ProcessEnv = process.env,
 ): DevelopmentServiceSpec {
+  if (!DISTRIBUTION.accountEnabled && name !== "app") {
+    throw new Error(`The ${name} development service is disabled in this local distribution.`);
+  }
   // The parent shell may run inside an Electron harness with
   // ELECTRON_RUN_AS_NODE=1. Every spec below becomes a spawned child, and the
   // app/test-client children relaunch Electron, so the runtime flags are
@@ -158,7 +178,9 @@ export function createDevelopmentServiceSpec(
       OPENBOT_DEV_REMOTE_DEBUGGING_PORT:
         childEnvironment.OPENBOT_DEV_REMOTE_DEBUGGING_PORT ??
         String(isTestClient ? DEFAULT_REMOTE_DEBUGGING_PORTS["test-client"] : DEFAULT_REMOTE_DEBUGGING_PORTS.app),
-      OPENBOT_DEV_REMOTE_ROLE: childEnvironment.OPENBOT_DEV_REMOTE_ROLE ?? (isTestClient ? "client" : "host"),
+      OPENBOT_DEV_REMOTE_ROLE: DISTRIBUTION.accountEnabled
+        ? (childEnvironment.OPENBOT_DEV_REMOTE_ROLE ?? (isTestClient ? "client" : "host"))
+        : "none",
     },
   };
 }
@@ -205,6 +227,7 @@ export function developmentProfileToSeed(
   specs: readonly DevelopmentServiceSpec[],
   profileExists: (path: string) => boolean = existsSync,
 ): { profile: string; env: NodeJS.ProcessEnv } | null {
+  if (!DISTRIBUTION.accountEnabled) return null;
   // The seed writes the app profile, which every target except `api` opens.
   const app = specs.find((spec) => spec.name === "app");
   if (!app) return null;
@@ -256,7 +279,7 @@ export interface DevelopmentInvocation {
 }
 
 export function parseDevelopmentTarget(args: string[]): DevelopmentInvocation {
-  const target = args.find((argument) => !argument.startsWith("--")) ?? "all";
+  const target = args.find((argument) => !argument.startsWith("--")) ?? (DISTRIBUTION.accountEnabled ? "all" : "app");
   if (target !== "api" && target !== "app" && target !== "test-client" && target !== "all") {
     throw new Error(`Unknown development target: ${target}. Use api, app, test-client, or all.`);
   }
@@ -266,6 +289,11 @@ export function parseDevelopmentTarget(args: string[]): DevelopmentInvocation {
   if (unsupportedOption) throw new Error(`Unknown option: ${unsupportedOption}.`);
   if (args.includes("--shared") && args.includes("--isolated")) {
     throw new Error("Use --shared or --isolated, not both.");
+  }
+  if (!DISTRIBUTION.accountEnabled && (args.includes("--hosting=test") || args.includes("--slack"))) {
+    throw new Error(
+      "Hosted-server and Slack development modes need cloud accounts and are disabled in this local distribution.",
+    );
   }
   return {
     target,
@@ -312,13 +340,14 @@ function prepareVoiceRuntime(): void {
 
 async function main(): Promise<void> {
   const { target, dryRun, force, shared, hostingTest, slack } = parseDevelopmentTarget(process.argv.slice(2));
+  const services = servicesForTarget(target);
+  const sharedEnvironment = developmentEnvironmentForTarget(target);
   if (!dryRun && prepareDevelopmentEnvironment() === "created") {
     logger.info("Prepared local development state.");
   }
-  const services = servicesForTarget(target);
   if (!dryRun && services.includes("app")) prepareVoiceRuntime();
-  const developmentEnvironment = dryRun ? {} : await loadDevelopmentEnvironment(projectRoot);
-  const sharedEnvironment = developmentEnvironmentForTarget(target);
+  const developmentEnvironment =
+    dryRun || !DISTRIBUTION.accountEnabled ? {} : await loadDevelopmentEnvironment(projectRoot);
   if (hostingTest) {
     sharedEnvironment.OPENBOT_AUTH_API_URL = TEST_ACCOUNT_API_URL;
     sharedEnvironment.OPENBOT_MOBILE_AUTH_API_URL = TEST_ACCOUNT_API_URL;

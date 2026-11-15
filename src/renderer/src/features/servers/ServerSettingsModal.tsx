@@ -1,3 +1,4 @@
+import { DISTRIBUTION } from "@openbot/contracts/distribution";
 import type {
   AvatarImageInput,
   HostedSitesDesktopApi,
@@ -568,8 +569,9 @@ export function ServerSettingsModal(props: ServerSettingsModalProps) {
   const sectionSupported = (value: Section): boolean => {
     switch (value) {
       case "general":
-      case "members":
         return true;
+      case "members":
+        return DISTRIBUTION.accountEnabled;
       case "personality":
         return Boolean(personalityOptions());
       case "agents":
@@ -579,9 +581,9 @@ export function ServerSettingsModal(props: ServerSettingsModalProps) {
       case "vault":
         return Boolean(props.vault);
       case "roles":
-        return roles.available();
+        return DISTRIBUTION.accountEnabled && roles.available();
       case "audit":
-        return audit.available();
+        return DISTRIBUTION.accountEnabled && audit.available();
       case "desktop":
         return remoteDesktopSection();
       case "mcp":
@@ -727,7 +729,7 @@ export function ServerSettingsModal(props: ServerSettingsModalProps) {
   createEffect(
     () => section() === "roles" && !roles.available(),
     (gone) => {
-      if (gone) setSection("members");
+      if (gone) setSection(DISTRIBUTION.accountEnabled ? "members" : "general");
     },
   );
 
@@ -735,7 +737,7 @@ export function ServerSettingsModal(props: ServerSettingsModalProps) {
   createEffect(
     () => section() === "audit" && !audit.available(),
     (gone) => {
-      if (gone) setSection("members");
+      if (gone) setSection(DISTRIBUTION.accountEnabled ? "members" : "general");
     },
   );
 
@@ -816,8 +818,9 @@ export function ServerSettingsModal(props: ServerSettingsModalProps) {
         value === "transfer" ||
         value === "routines" ||
         value === "browser-profiles"
-      )
-        setSection(value);
+      ) {
+        if (sectionSupported(value)) setSection(value);
+      }
     },
   };
 
